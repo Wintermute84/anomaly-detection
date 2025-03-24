@@ -73,8 +73,8 @@ function generateTable(data){
   let tableHtml = `<table border="1">
         <tr>
            <th>ID</th>
-           <th>Destination Port</th>
            <th>Destination IP</th>
+           <th>Destination Port</th>
            <th>Result</th>
         </tr>`
   let id = 1
@@ -173,9 +173,10 @@ async function uploadFile() {
       alert("Please select a valid PCAP file!");
       return;
     }
-
+    let userId = localStorage.getItem('userId')
     let formData = new FormData();
     formData.append("file", file);
+    formData.append('userId',userId)
 
   try {
     let response = await fetch("http://localhost:5000/upload", {
@@ -206,9 +207,10 @@ async function uploadFiles() {
     alert("Please select a valid PCAP file!");
     return;
   }
-
+  let userId = localStorage.getItem('userId')
   let formData = new FormData();
   formData.append("file", file);
+  formData.append('userId',userId)
 
 try {
   let response = await fetch("http://localhost:5000/upload", {
@@ -226,9 +228,10 @@ try {
 } 
 }
 
-async function getPreviousActivity(userId) {
+async function getPreviousActivity() {
+  let userId = localStorage.getItem('userId')
+  console.log(userId)
   let user = JSON.stringify({ user: userId });
-
   try {
     let response = await fetch("http://localhost:5000/getprevactivity", {
       method: "POST",

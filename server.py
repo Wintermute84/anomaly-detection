@@ -95,25 +95,22 @@ init_db()
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
-    if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+    
+    user_id = request.form.get('userId')
+    file = request.files.get('file')
 
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-
-    if not (file.filename.endswith(".pcap") or file.filename.endswith(".csv")):
-        return jsonify({"error": "Invalid file type"}), 400
+    if not file:
+        return jsonify({"message": "No file uploaded!"}), 400
 
     filepath = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(filepath)
     print(filepath)
-    
+    print(user_id)
     # Call the analyze function
     if file.filename.endswith(".csv"):
-        return analyze_csv(filepath,1)
+        return analyze_csv(filepath,user_id)
     else:
-        return analyze_pcap(filepath,1)
+        return analyze_pcap(filepath,user_id)
 
 @app.route("/getprevactivity", methods=["POST"])
 def prevactivity():
@@ -147,6 +144,61 @@ def prevactivity():
 
     except ValueError:  
         return jsonify({"error": "Invalid user ID"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/login", methods=["POST"])
+def login():
+    try:
+        data = request.json
+        email = data.get("email")
+        password = data.get("password")  
+        print(email,password)
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            SELECT id from users where email = ? and password_hash = ?;
+        """, (email,password))
+
+        rows = c.fetchone()
+        conn.close()
+
+        if not rows:
+            return jsonify({"message": "Empty"})
+
+        return jsonify({"message":"ok","output": rows[0]})
+
+    except ValueError:  
+        return jsonify({"error": "Invalid user ID"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/signin", methods=["POST"])
+def signin():
+    try:
+        data = request.json
+        email = data.get("email")
+        password = data.get("password")  
+
+        if not email or not password:
+            return jsonify({"message": "Email and password required"}), 400
+
+        print(email, password)
+        conn = get_db_connection()
+        c = conn.cursor()
+
+        # Insert new user
+        c.execute("""
+            INSERT INTO users (email, password_hash) VALUES (?, ?);
+        """, (email, password))
+        conn.commit()
+
+        user_id = c.lastrowid  # Get inserted user's ID
+
+        conn.close()
+
+        return jsonify({"message": "ok", "user_id": user_id})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
